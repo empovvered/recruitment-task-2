@@ -1,3 +1,4 @@
+import submitDocumentRejectedFixture from "data/submit-error.json"
 import submitDocumentAcceptedFixture from "data/submit-success.json"
 import { screen, setup, waitFor } from "tests"
 
@@ -101,6 +102,10 @@ describe("AddDocumentModal", () => {
     expect(submit).toHaveFocus()
     expect(screen.getByRole("status")).toHaveTextContent("Wysyłanie dokumentu…")
     expect(screen.getByRole("button", { name: "Anuluj" })).toBeDisabled()
+
+    await user.keyboard("{Escape}")
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
     expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
       documentType: "id",
       documentNumber: "ABC 123456",
@@ -115,5 +120,32 @@ describe("AddDocumentModal", () => {
     expect(screen.getByText(submitDocumentAcceptedFixture.documentId)).toBeInTheDocument()
     expect(screen.getByText(submitDocumentAcceptedFixture.requestId)).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Dokument przyjęty" })).toHaveFocus()
+  })
+
+  it("shows why the document was refused and sends the retry as a second attempt", async () => {
+    const { user, fetchMock } = renderModal()
+
+    fetchMock
+      .mockResolvedValueOnce(Response.json(submitDocumentRejectedFixture, { status: 422 }))
+      .mockResolvedValueOnce(Response.json(submitDocumentAcceptedFixture, { status: 202 }))
+    await fillValidDocument(user)
+    await user.click(screen.getByRole("button", { name: "Wyślij" }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(submitDocumentRejectedFixture.message)
+
+    const retry = screen.getByRole("button", { name: "Spróbuj ponownie" })
+
+    expect(retry).toBeEnabled()
+    expect(retry).toHaveFocus()
+    expect(screen.getByRole("textbox", { name: "Numer dokumentu" })).toHaveValue(" ABC 123456 ")
+
+    await user.click(retry)
+
+    expect(await screen.findByText(submitDocumentAcceptedFixture.message)).toBeInTheDocument()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.map(([, init]) => (init as RequestInit).headers)).toEqual([
+      expect.objectContaining({ "X-Submit-Attempt": "1" }),
+      expect.objectContaining({ "X-Submit-Attempt": "2" }),
+    ])
   })
 })

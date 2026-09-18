@@ -4,6 +4,7 @@ import { isSubmitDocumentError } from "api/apiActions/documents/documents.errors
 import { submitDocumentPayloadSchema } from "api/apiActions/documents/documents.schema"
 import { SubmitDocumentAcceptedResponse, SubmitDocumentPayload } from "api/apiActions/documents/documents.types"
 import { Button } from "components/button/button"
+import { FormErrorMessage } from "components/form/errorMessage/formErrorMessage"
 import { CheckboxField } from "components/form/fields/checkbox/checkboxField"
 import { InputField } from "components/form/fields/input/inputField"
 import { SelectField } from "components/form/fields/select/selectField"
@@ -83,6 +84,7 @@ export const AddDocumentModal = ({ isOpen, onClose }: AddDocumentModalProps) => 
           <>
             <Modal.Header header="Dodaj dokument" />
             <Modal.Body>
+              <FormErrorMessage error={formState.errors.root} />
               <SelectField
                 name="documentType"
                 label="Typ dokumentu"
@@ -128,7 +130,7 @@ export const AddDocumentModal = ({ isOpen, onClose }: AddDocumentModalProps) => 
                 Anuluj
               </Button>
               <Button testId="submitAddDocumentButton" type="submit" isLoading={isPending}>
-                Wyślij
+                {formState.errors.root ? "Spróbuj ponownie" : "Wyślij"}
               </Button>
             </Modal.Footer>
           </>
