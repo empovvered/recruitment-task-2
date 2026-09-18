@@ -19,7 +19,7 @@ export const Textarea = ({
   value,
   ...props
 }: TextareaProps) => {
-  const characterCount = typeof value === "string" ? value.length : undefined
+  const characterCount = typeof value === "string" ? value.trim().length : undefined
   const hasCounter = characterLimit !== undefined && characterCount !== undefined
   const isOverLimit = hasCounter && characterCount > characterLimit
   const ids = useFieldIds({ id, hasDescription: hasCounter, hasError: !!errorMessage })
