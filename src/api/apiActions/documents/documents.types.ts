@@ -1,3 +1,18 @@
+import { DocumentType } from "types/documents"
+
+export type SubmitDocumentPayload = {
+  documentType: DocumentType
+  documentNumber: string
+  ownerEmail: string
+  consent: boolean
+  note: string
+}
+
+export type SubmitDocumentVariables = {
+  payload: SubmitDocumentPayload
+  attempt: number
+}
+
 export type SubmitDocumentAcceptedResponse = {
   requestId: string
   status: "accepted"

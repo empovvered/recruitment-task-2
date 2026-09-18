@@ -1,11 +1,14 @@
-import { screen, setup } from "tests"
+import submitDocumentAcceptedFixture from "data/submit-success.json"
+import { screen, setup, waitFor } from "tests"
 
 import { AddDocumentModal } from "./addDocumentModal"
 
 const renderModal = () => {
-  const onSubmit = vi.fn()
+  const fetchMock = vi.fn()
 
-  return { onSubmit, ...setup(<AddDocumentModal isOpen onClose={vi.fn()} onSubmit={onSubmit} />) }
+  vi.stubGlobal("fetch", fetchMock)
+
+  return { fetchMock, ...setup(<AddDocumentModal isOpen onClose={vi.fn()} />) }
 }
 
 const fillValidDocument = async (user: ReturnType<typeof renderModal>["user"]) => {
@@ -14,9 +17,13 @@ const fillValidDocument = async (user: ReturnType<typeof renderModal>["user"]) =
   await user.click(screen.getByRole("checkbox", { name: /Wyrażam zgodę/ }))
 }
 
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe("AddDocumentModal", () => {
-  it("names every missing field next to it, focuses the first one and keeps the submission", async () => {
-    const { user, onSubmit } = renderModal()
+  it("names every missing field next to it, focuses the first one and sends nothing", async () => {
+    const { user, fetchMock } = renderModal()
 
     await user.click(screen.getByRole("button", { name: "Wyślij" }))
 
@@ -29,7 +36,7 @@ describe("AddDocumentModal", () => {
       "E-mail właściciela jest wymagany.",
     )
     expect(screen.getByRole("checkbox", { name: /Wyrażam zgodę/ })).toHaveAccessibleDescription("Zgoda jest wymagana.")
-    expect(onSubmit).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it("tells a malformed e-mail from a missing one", async () => {
@@ -44,23 +51,24 @@ describe("AddDocumentModal", () => {
   })
 
   it("requires the note only for the type Other and caps it at 200 characters", async () => {
-    const { user, onSubmit } = renderModal()
+    const { user, fetchMock } = renderModal()
     const note = screen.getByRole("textbox", { name: "Notatka" })
 
+    fetchMock.mockResolvedValue(Response.json(submitDocumentAcceptedFixture, { status: 202 }))
     await fillValidDocument(user)
     await user.selectOptions(screen.getByRole("combobox", { name: "Typ dokumentu" }), "other")
     await user.click(screen.getByRole("button", { name: "Wyślij" }))
 
     expect(note).toBeRequired()
     expect(note).toHaveAccessibleDescription(/Dla typu Other notatka jest wymagana\./)
-    expect(onSubmit).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
 
     await user.click(note)
     await user.paste("a".repeat(201))
     await user.click(screen.getByRole("button", { name: "Wyślij" }))
 
     expect(note).toHaveAccessibleDescription(/201\/200 Notatka może mieć najwyżej 200 znaków\./)
-    expect(onSubmit).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Typ dokumentu" }), "id")
 
@@ -72,23 +80,40 @@ describe("AddDocumentModal", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "Typ dokumentu" }), "other")
     await user.click(screen.getByRole("button", { name: "Wyślij" }))
 
-    expect(onSubmit).toHaveBeenCalledTimes(1)
-    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ documentType: "other", note: "Skan z 2024 r." })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      documentType: "other",
+      note: "Skan z 2024 r.",
+    })
   })
 
-  it("submits a complete document with its values trimmed", async () => {
-    const { user, onSubmit } = renderModal()
+  it("sends the trimmed document, shows the request in flight and then the accepted document", async () => {
+    const { user, fetchMock } = renderModal()
+    let answer: (response: Response) => void = () => undefined
 
+    fetchMock.mockReturnValue(new Promise<Response>((resolve) => (answer = resolve)))
     await fillValidDocument(user)
     await user.click(screen.getByRole("button", { name: "Wyślij" }))
 
-    expect(onSubmit).toHaveBeenCalledTimes(1)
-    expect(onSubmit.mock.calls[0]?.[0]).toEqual({
+    const submit = screen.getByRole("button", { name: "Wyślij" })
+
+    await waitFor(() => expect(submit).toHaveAttribute("aria-busy", "true"))
+    expect(submit).toHaveFocus()
+    expect(screen.getByRole("status")).toHaveTextContent("Wysyłanie dokumentu…")
+    expect(screen.getByRole("button", { name: "Anuluj" })).toBeDisabled()
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
       documentType: "id",
       documentNumber: "ABC 123456",
       ownerEmail: "anna@example.pl",
       consent: true,
       note: "",
     })
+
+    answer(Response.json(submitDocumentAcceptedFixture, { status: 202 }))
+
+    expect(await screen.findByText(submitDocumentAcceptedFixture.message)).toBeInTheDocument()
+    expect(screen.getByText(submitDocumentAcceptedFixture.documentId)).toBeInTheDocument()
+    expect(screen.getByText(submitDocumentAcceptedFixture.requestId)).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Dokument przyjęty" })).toHaveFocus()
   })
 })

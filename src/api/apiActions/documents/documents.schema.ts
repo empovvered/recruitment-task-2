@@ -2,7 +2,9 @@ import { NOTE_MAX_INPUT_LENGTH, REQUIRED_MIN_INPUT_LENGTH } from "constants/form
 import { DOCUMENT_TYPES } from "types/documents"
 import { z } from "zod"
 
-export const addDocumentFormSchema = z
+import { SubmitDocumentPayload } from "./documents.types"
+
+export const submitDocumentPayloadSchema = z
   .object({
     documentType: z.literal(DOCUMENT_TYPES, { error: "Wybierz typ dokumentu." }),
     documentNumber: z.string().trim().min(REQUIRED_MIN_INPUT_LENGTH, { error: "Numer dokumentu jest wymagany." }),
@@ -26,6 +28,4 @@ export const addDocumentFormSchema = z
         input: context.value.note,
       })
     }
-  })
-
-export type AddDocumentFormValues = z.infer<typeof addDocumentFormSchema>
+  }) satisfies z.ZodType<SubmitDocumentPayload>

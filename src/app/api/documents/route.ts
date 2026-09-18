@@ -1,5 +1,6 @@
 import { DocumentsFailMode, MAX_SUBMIT_DELAY_MS } from "api/apiActions/documents/documents.constants"
 import { submitDocumentAcceptedMockData, submitDocumentRejectedMockData } from "api/apiActions/documents/documents.mock"
+import { submitDocumentPayloadSchema } from "api/apiActions/documents/documents.schema"
 import { Headers } from "constants/headers"
 import { HttpStatus } from "constants/httpStatusCodes"
 import { SearchParams } from "constants/searchParams"
@@ -19,12 +20,29 @@ const readAttempt = (value: Nullable<string>) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
 }
 
+const readBody = async (request: NextRequest): Promise<unknown> => {
+  try {
+    return await request.json()
+  } catch {
+    return undefined
+  }
+}
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const shouldReject = (failMode: Nullable<string>, attempt: number) =>
   failMode === DocumentsFailMode.Always || (failMode === DocumentsFailMode.Once && attempt === 1)
 
 export const POST = async (request: NextRequest) => {
+  const payload = submitDocumentPayloadSchema.safeParse(await readBody(request))
+
+  if (!payload.success) {
+    return NextResponse.json(
+      { message: "Przesłany dokument nie przeszedł walidacji.", issues: payload.error.issues },
+      { status: HttpStatus.BadRequest },
+    )
+  }
+
   const { searchParams } = new URL(request.url)
   const delayMs = readDelayMs(searchParams.get(SearchParams.Delay))
 
