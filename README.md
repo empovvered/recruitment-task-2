@@ -17,18 +17,34 @@ pnpm dev       # http://localhost:3000
 A plain `npm install` followed by `npm run dev` works too; the dependency ranges are kept compatible with npm's stricter
 peer resolution.
 
-If git reports that a hook `was ignored because it's not set as executable`, run `chmod ug+x .husky/*`.
+The git hooks call `pnpm`. A clone that only has npm can still commit with `HUSKY=0 git commit ...`, or after
+`corepack enable`. If git reports that a hook `was ignored because it's not set as executable`, run
+`chmod ug+x .husky/*`.
 
 ## Seeing it work
 
 The states the task asks for are reachable from the address bar, so none of them needs a code change to demonstrate:
 
-| URL            | What the submit does                                          |
-| -------------- | ------------------------------------------------------------- |
-| `/`            | accepts the document                                          |
-| `/?delay=2000` | waits two seconds first, so the request in flight can be seen |
-| `/?fail=1`     | refuses the document every time                               |
-| `/?fail=once`  | refuses the first attempt and accepts the retry               |
+| URL                   | What the submit does                                          |
+| --------------------- | ------------------------------------------------------------- |
+| `/`                   | accepts the document                                          |
+| `/?delay=2000`        | waits two seconds first, so the request in flight can be seen |
+| `/?fail=1`            | refuses the document every time                               |
+| `/?fail=once`         | refuses the first attempt and accepts the retry               |
+| `/?delay=1500&fail=1` | shows the request in flight, then the refusal                 |
+
+The switches work from the page because the form forwards the page's query string to the endpoint. The endpoint can also
+be driven without the page:
+
+```bash
+curl -i -X POST 'http://localhost:3000/api/documents?fail=once' \
+  -H 'content-type: application/json' \
+  -H 'X-Submit-Attempt: 1' \
+  -d '{"documentType":"id","documentNumber":"ABC 123456","ownerEmail":"anna@example.pl","consent":true,"note":""}'
+```
+
+The same call with `X-Submit-Attempt: 2` is accepted, and a body that breaks the contract, say `"ownerEmail":"x"`, is
+answered with `400` and the offending field.
 
 ## Available commands
 
@@ -47,9 +63,9 @@ The states the task asks for are reachable from the address bar, so none of them
 
 ## The submit endpoint
 
-`POST /api/documents` is what the form will submit to. It answers with the delivered fixtures, so loading, success,
-failure and retry are a real request rather than a staged state. The scenarios are switches in the query string, so each
-one is reachable from a link:
+`POST /api/documents` is what the form submits to. It answers with the delivered fixtures, so loading, success, failure
+and retry are a real request rather than a staged state. The scenarios are switches in the query string, so each one is
+reachable from a link:
 
 | Request               | Answer                                                                         |
 | --------------------- | ------------------------------------------------------------------------------ |
