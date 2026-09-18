@@ -63,6 +63,17 @@ endpoint will share one schema.
 | A busy button stays focusable                       | A button that becomes `disabled` while a request is in flight throws focus out of the modal. While loading it is `aria-disabled` and `aria-busy` instead, ignores presses, and keeps the focus it has.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Every field owns its label, description and error   | A field renders its `label`, its `description` and its `errorMessage` itself and links them to the control through `htmlFor`, `aria-describedby`, `aria-invalid` and `aria-required`; a required field is announced as such but never blocked by the browser's own validation bubble, so the rules the brief describes stay in one place. The association cannot be forgotten at a call site because there is no call site that assembles it.                                                                                                                                                                                                                                                                                                                                                                 |
 | One light palette                                   | The scaffold shipped a dark override that only repainted the page behind components that stayed light. One committed scheme with a few semantic colour tokens is cheaper here than a second set of tokens.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| One schema describes a valid document               | The rules the brief lists live in one zod schema next to the form: required number, required and well-formed e-mail, required consent, a note of at most 200 characters that becomes required for the type Other. The form validates against it, and the endpoint will parse the body with the same schema, so a rule cannot be true on one side and false on the other.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Validation runs on submit, then on change           | The submit button stays enabled. Pressing it reports every problem at once, each next to its field and linked through `aria-describedby`, and moves focus to the first invalid field; from then on a field is re-checked as it changes. A submit that is disabled until the form is valid gives a keyboard or screen reader user no way to find out what is missing.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| A field comes in two layers                         | `Input` renders and links a native control; `InputField` connects it to the form through a controller and hands it the error to show. The plain layer stays usable outside a form, and the form layer cannot forget the association because it does not assemble it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+
+## Assumptions
+
+- **The document type is not required** and starts as `ID`, so the first interactive element of the modal is a select
+  with a value. The option labels are the ones the brief uses.
+- **Values are trimmed before validation and submission.** A number made of spaces is a missing number, and the 200
+  characters of the note are counted after trimming.
+- **The whole modal is one form.** Closing it discards what was typed; reopening it starts from an empty form.
 
 ## Where things live
 
@@ -70,15 +81,16 @@ endpoint will share one schema.
 src/api/apiActions/documents   the endpoint's response types, its scenario constants and the fixtures as mock data
 src/app/api/documents          the route handler and its test
 src/app                        the routes, the root layout and the global stylesheet
-src/app/_components            what only the home page uses: the add-document button and its modal
+src/app/_components            what only the home page uses: the add-document button, its modal, the schema
 src/components/modal           a dialog that owns its focus: where it lands, that it stays, where it returns
 src/components/button          every button, with one disabled and one busy treatment
-src/components/form            the field vocabulary: label, error message, input, select, checkbox, textarea
+src/components/form            the form and the field vocabulary: label, error message, input, select, checkbox, textarea
 src/components/icons           the few icons the components need
-src/constants                  search param, header and status code names
-src/hooks                      the ids a field links its label, description and error with
+src/constants                  search param, header and status code names, form limits
+src/hooks                      the form hook, the field controller and the ids a field links its label and error with
 src/tests                      the render helper, the provider wrapper it uses and the runner setup
 src/utils                      the class-name helper
+src/types                      domain unions
 typings                        ambient types shared by the whole project
 ```
 
