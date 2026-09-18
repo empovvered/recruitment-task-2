@@ -8,7 +8,6 @@ type CustomRenderOptions = Omit<RenderOptions, "wrapper">
 
 const render = (ui: ReactElement, options: CustomRenderOptions = {}) => baseRender(ui, { wrapper: Wrapper, ...options })
 
-//INFO: Pairs a render with a user-event session, so a spec drives the component the way a person would
 const setup = (ui: ReactElement, options: CustomRenderOptions = {}) => ({
   user: userEvent.setup(),
   ...render(ui, options),
