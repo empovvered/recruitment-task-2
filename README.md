@@ -33,12 +33,41 @@ If git reports that a hook `was ignored because it's not set as executable`, run
 | `pnpm test`         | Run the test suite once                                   |
 | `pnpm test:watch`   | Run the test suite in watch mode                          |
 
+## The submit endpoint
+
+`POST /api/documents` is what the form will submit to. It answers with the delivered fixtures, so loading, success,
+failure and retry are a real request rather than a staged state. The scenarios are switches in the query string, so each
+one is reachable from a link:
+
+| Request               | Answer                                                                         |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `POST /api/documents` | `202 Accepted` with `data/submit-success.json`                                 |
+| `?fail=1`             | `422 Unprocessable Content` with `data/submit-error.json`, on every attempt    |
+| `?fail=once`          | the error fixture on the first attempt, the success fixture from the second on |
+| `?delay=ms`           | waits up to 5000 ms before answering, so the loading state can be seen         |
+
+The attempt is whatever the `X-Submit-Attempt` header says, or 1 when the header is absent, so the endpoint keeps no
+state. The body is not read yet: the submission contract arrives together with the form validation, so the form and the
+endpoint will share one schema.
+
+## Technical decisions
+
+| Decision                             | Why                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A route handler as the submit target | The task allows a mock or a simulated request. A real `fetch` to a real endpoint makes loading, success, failure and retry genuine, works after a plain `npm run dev` with nothing else switched on, and deploys as it is. The fixtures are imported statically, so they stay in the server bundle. |
+| `422` for the error fixture          | The fixture describes a document the backend refused (`VALIDATION_BACKEND`), not a service that is down, and the client still sees a failed response. The fixture carries no status of its own, so this is an assumption.                                                                           |
+| `202` for the success fixture        | The fixture says the document was accepted for verification, not that verification finished.                                                                                                                                                                                                        |
+| `?fail=once` counted by the client   | A retry that succeeds is the flow the task describes. The client numbers its attempts in a header, so the endpoint stays stateless and a dev server restart cannot change the outcome.                                                                                                              |
+
 ## Where things live
 
 ```
-src/app        the routes, the root layout and the global stylesheet
-src/tests      the render helper, the provider wrapper it uses and the runner setup
-typings        ambient types shared by the whole project
+src/api/apiActions/documents   the endpoint's response types, its scenario constants and the fixtures as mock data
+src/app/api/documents          the route handler and its test
+src/app                        the routes, the root layout and the global stylesheet
+src/constants                  search param, header and status code names
+src/tests                      the render helper, the provider wrapper it uses and the runner setup
+typings                        ambient types shared by the whole project
 ```
 
 Files sit next to what they serve, with the suffix saying what they are: `.types`, `.utils`, `.queries`, `.schema`,
