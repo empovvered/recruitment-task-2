@@ -1,5 +1,6 @@
 "use client"
 
+import { submitDocumentPayloadSchema } from "api/apiActions/documents/documents.schema"
 import { Button } from "components/button/button"
 import { CheckboxField } from "components/form/fields/checkbox/checkboxField"
 import { InputField } from "components/form/fields/input/inputField"
@@ -10,13 +11,12 @@ import { Modal } from "components/modal/modal"
 import { NOTE_MAX_INPUT_LENGTH } from "constants/forms"
 
 import { ADD_DOCUMENT_FORM_DEFAULT_VALUES, DOCUMENT_TYPE_OPTIONS } from "./addDocumentModal.constants"
-import { addDocumentFormSchema } from "./addDocumentModal.schema"
 import { AddDocumentModalProps } from "./addDocumentModal.types"
 
 export const AddDocumentModal = ({ isOpen, onClose, onSubmit }: AddDocumentModalProps) => (
   <Modal isOpen={isOpen} onClose={onClose} testId="addDocumentModal">
     <Form
-      schema={addDocumentFormSchema}
+      schema={submitDocumentPayloadSchema}
       defaultValues={ADD_DOCUMENT_FORM_DEFAULT_VALUES}
       onSubmit={onSubmit}
       className="flex min-h-0 flex-col gap-6"
