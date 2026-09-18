@@ -8,5 +8,6 @@
   "proseWrap": "always",
   "plugins": ["prettier-plugin-tailwindcss"],
   "tailwindAttributes": ["classNames"],
-  "tailwindFunctions": ["cva", "cn"]
+  "tailwindFunctions": ["cva", "cn"],
+  "tailwindStylesheet": "./src/app/globals.css"
 }
