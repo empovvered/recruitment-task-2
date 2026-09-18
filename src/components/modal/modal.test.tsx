@@ -50,7 +50,7 @@ describe("Modal", () => {
     await user.click(screen.getByRole("button", { name: "Otwórz" }))
     await user.tab({ shift: true })
 
-    expect(screen.getByRole("button", { name: "Zamknij" })).toHaveFocus()
+    expect(screen.getByRole("button", { name: "Zamknij okno" })).toHaveFocus()
 
     await user.tab()
 

@@ -15,7 +15,7 @@ const getTabbableElements = (container: HTMLElement) =>
 
 const ModalContext = createContext({ labelId: "" })
 
-export const Modal = ({ isOpen, onClose, children, closeLabel = "Zamknij", className, testId }: ModalProps) => {
+export const Modal = ({ isOpen, onClose, children, closeLabel = "Zamknij okno", className, testId }: ModalProps) => {
   const labelId = useId()
   const overlayRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -129,11 +129,11 @@ export const Modal = ({ isOpen, onClose, children, closeLabel = "Zamknij", class
   )
 }
 
-const ModalHeader = ({ header, className }: ModalHeaderProps) => {
+const ModalHeader = ({ header, className, ...props }: ModalHeaderProps) => {
   const { labelId } = useContext(ModalContext)
 
   return (
-    <h2 id={labelId} className={cn("pe-10 text-xl font-bold text-gray-900", className)}>
+    <h2 {...props} id={labelId} className={cn("pe-10 text-xl font-bold text-gray-900 focus:outline-none", className)}>
       {header}
     </h2>
   )

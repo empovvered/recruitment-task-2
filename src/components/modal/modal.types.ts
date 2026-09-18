@@ -1,4 +1,4 @@
-import { ReactNode } from "react"
+import { ComponentPropsWithRef, ReactNode } from "react"
 
 export type ModalProps = {
   isOpen: boolean
@@ -9,9 +9,8 @@ export type ModalProps = {
   testId?: string
 }
 
-export type ModalHeaderProps = {
+export type ModalHeaderProps = ComponentPropsWithRef<"h2"> & {
   header: ReactNode
-  className?: string
 }
 
 export type ModalSectionProps = {
