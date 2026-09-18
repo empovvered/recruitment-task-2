@@ -1,0 +1,2 @@
+export const REQUIRED_MIN_INPUT_LENGTH = 1
+export const NOTE_MAX_INPUT_LENGTH = 200
